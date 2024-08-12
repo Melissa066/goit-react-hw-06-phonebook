@@ -1,59 +1,94 @@
-import { Formik } from 'formik';
+import { useState } from 'react';
 import { nanoid } from 'nanoid';
-import * as Yup from 'yup';
-import {
-  StyledForm,
-  StyledLabel,
-  StyledButton,
-  StyledField,
-  StyledErrorMessage,
-} from './ContactForm.styled';
-import { addContact } from 'redux/phonebook-slice';
-import { useDispatch, useSelector } from 'react-redux';
-import { selectContacts } from 'redux/selectors';
+import { addContact, getContacts } from '../../redux/contactsSlice';
+import { useSelector, useDispatch } from 'react-redux';
+import Notiflix from 'notiflix';
+import styles from "./ContactForm.module.css";
 
-const phonebookSchema = Yup.object().shape({
-  name: Yup.string().required('This field is required!'),
-  number: Yup.string()
-    .matches(/^[0-9-+]+$/, 'Please enter digits, "-" or "+"')
-    .required('This field is required!'),
-});
+export default function ContactForm() {
+    const [name, setName] = useState('');
+    const [number, setNumber] = useState('');
 
-export const ContactForm = () => {
-  const contacts = useSelector(selectContacts);
-  const dispatch = useDispatch();
+    const handleChange = (event) => {
+    const { name, value } = event.target;
 
-  const handleSubmit = (values, actions) => {
-    if (
-      contacts.some(
-        contact => contact.name.toLowerCase() === values.name.toLowerCase()
-      )
-    ) {
-      return alert(`${values.name} is already in contacts!`);
+        switch (name) {
+        case 'name':
+            setName(value);
+        break;
+
+        case 'number':
+            setNumber(value);
+        break;
+
+        default:
+            return;
     }
-    dispatch(addContact({ ...{ id: nanoid() }, ...values }));
-    actions.resetForm();
-  };
+    };
 
-  return (
-    <Formik
-      initialValues={{ name: '', number: '' }}
-      validationSchema={phonebookSchema}
-      onSubmit={handleSubmit}
-    >
-      <StyledForm>
-        <StyledLabel>
-          Name
-          <StyledField name="name" />
-          <StyledErrorMessage name="name" component="div" />
-        </StyledLabel>
-        <StyledLabel>
-          Number
-          <StyledField name="number" />
-          <StyledErrorMessage name="number" component="div" />
-        </StyledLabel>
-        <StyledButton type="submit">Add contact</StyledButton>
-      </StyledForm>
-    </Formik>
-  );
-};
+    const dispatch = useDispatch();
+    const contacts = useSelector(getContacts);
+
+    const addContactToList = (name, number) => {
+        if (
+        contacts.find(
+            contact => contact.name.toLowerCase() === name.toLowerCase(),
+        )
+        ) {
+        Notiflix.Notify.failure(`${name} is already in contacts.`);
+        } else if (contacts.find(contact => contact.number === number)) {
+        Notiflix.Notify.failure(`${number} is already in contacts.`);
+        } else if (name.trim() === '' || number.trim() === '') {
+        Notiflix.Notify.info("Enter the contact's name and number phone!");
+        } else {
+        dispatch(addContact({name, number}))
+    }
+    }
+
+
+    const handleSubmit = (event) => {
+    event.preventDefault();
+
+    addContactToList(name, number);
+
+    setName('')
+    setNumber('')
+    };
+
+    const nameId = nanoid();
+    const numberId = nanoid();
+
+    return (
+        <form className={styles.form} onSubmit={handleSubmit}>
+            <label className={styles.label} htmlFor={nameId}>
+                Name
+                <input
+                    className={styles.input}
+                    type="text"
+                    name="name"
+                    value={name}
+                    onChange={handleChange}
+                    placeholder="Input name"
+                />
+            </label>
+            <label className={styles.label} htmlFor={numberId}>
+                Number
+                <input
+                    className={styles.input}
+                    type="tel"
+                    name="number"
+                    value={number}
+                    onChange={handleChange}
+                    placeholder="Input number"
+                    pattern="\+?\d{1,4}?[-.\s]?\(?\d{1,3}?\)?[-.\s]?\d{1,4}[-.\s]?\d{1,4}[-.\s]?\d{1,9}"
+                    title="Phone number must be digits and can contain spaces, dashes, parentheses and can start with +"
+                    required
+                />
+            </label>
+            <button className={styles.button} type="submit">
+                Add contact
+            </button>
+        </form>
+    );
+
+}

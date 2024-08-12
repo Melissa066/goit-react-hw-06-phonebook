@@ -1,31 +1,32 @@
-import { nanoid } from 'nanoid';
-import { StyledList, StyledButton } from './ContactList.styled';
-import { useDispatch } from 'react-redux';
-import { removeContact } from 'redux/phonebook-slice';
-import { useSelector } from 'react-redux';
-import { selectContacts } from 'redux/selectors';
+import React from 'react';
+import { useSelector, useDispatch } from 'react-redux';
+import { getContacts, removeContact } from '../../redux/contactsSlice';
+import { getFilter } from '../../redux/filterSlice';
+import styles from "./ContactList.module.css";
 
-export const ContactList = () => {
-  const contacts = useSelector(selectContacts);
-  const dispatch = useDispatch();
+export default function ContactList() {
+    const contacts = useSelector(getContacts);
+    const filter = useSelector(getFilter);
+    const dispatch = useDispatch();
 
-  return (
-    <StyledList>
-      {contacts.map(item => {
-        return (
-          <li key={nanoid()}>
-            {item.name}: {item.number}{' '}
-            <StyledButton
-              type="button"
-              onClick={() => {
-                dispatch(removeContact(item.id));
-              }}
-            >
-              Delete
-            </StyledButton>
-          </li>
-        );
-      })}
-    </StyledList>
-  );
-};
+    const getFilteredContacts = () => {
+        if (!filter) {
+            return contacts;
+        }
+        
+        return contacts.filter(({name}) => name.toLocaleLowerCase().includes(filter.toLocaleLowerCase()))
+    }
+
+    const contactsToRender = getFilteredContacts()
+
+    return (
+        <ul className={styles.list}>
+            {contactsToRender.map(item =>
+            <li className={styles.item} key={item.id}>
+                <p>{item.name}: {item.number}</p>
+                <button type='button' className={styles.button} onClick={() => dispatch(removeContact(item.id))}>delete</button>
+            </li>)
+        }
+        </ul>
+    );
+}
